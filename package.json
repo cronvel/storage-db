@@ -1,7 +1,7 @@
 {
   "name": "storage-db",
-  "version": "0.0.1",
-  "description": "",
+  "version": "0.0.0",
+  "description": "Abstraction for the Storage API (localStorage, sessionStorage).",
   "main": "lib/StorageDb.js",
   "directories": {
     "test": "test"
