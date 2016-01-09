@@ -53,7 +53,7 @@ TESTLING=./node_modules/.bin/testling
 
 # Build the browser lib
 browser/StorageDb.js: lib/*.js
-	${BROWSERIFY} lib/browser.js -s StorageDb -o browser/StorageDb.js
+	${BROWSERIFY} lib/browser.js -u lib/LocalStorageEmu.js -s StorageDb -o browser/StorageDb.js
 
 # Build the browser minified lib
 browser/StorageDb.min.js: browser/StorageDb.js

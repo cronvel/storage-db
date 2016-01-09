@@ -159,6 +159,9 @@ describe( "Basic StorageDb features" , function() {
 		expect( pref.get( 'theme' ) ).to.eql( { header: 'red' , background: 'cyan' } ) ;
 		expect( pref.get( 'bindings' ) ).to.eql( { delete: 'CTRL-D' , new: 'CTRL-N' } ) ;
 		
+		expect( db.cacheHit ).to.be( 2 ) ;
+		expect( db.cacheMiss ).to.be( 0 ) ;
+		
 		pref.delete( 'bindings' ) ;
 		expect( pref.get( 'bindings' ) ).to.eql( undefined ) ;
 	} ) ;
@@ -185,8 +188,13 @@ describe( "Basic StorageDb features" , function() {
 		expect( db.collections.pref.get( 'bindings' ) ).to.eql( { delete: 'CTRL-D' , new: 'CTRL-N' } ) ;
 		expect( db.collections.login.get( 'bob' ) ).to.eql( { login: 'bob' , password: 'god' } ) ;
 		
+		expect( db.cacheHit ).to.be( 0 ) ;
+		expect( db.cacheMiss ).to.be( 3 ) ;
+		
 		// Should be cached
 		expect( db.collections.pref.get( 'bindings' ) ).to.eql( { delete: 'CTRL-D' , new: 'CTRL-N' } ) ;
+		expect( db.cacheHit ).to.be( 1 ) ;
+		expect( db.cacheMiss ).to.be( 3 ) ;
 	} ) ;
 } ) ;
 
