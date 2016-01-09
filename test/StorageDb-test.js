@@ -64,21 +64,21 @@ describe( "Basic localStorage/localStorageEmu features" , function() {
 	
 	beforeEach( clearStorage ) ;
 	
-	it( "at the begining, 'length' should be 0" , function() {
+	it( "at the begining, .length should be 0" , function() {
 		expect( localStorage.length ).to.be( 0 ) ;
 	} ) ;
 	
-	it( "'getItem' on an unexistant key should return null" , function() {
+	it( ".getItem() on an unexistant key should return null" , function() {
 		expect( localStorage.getItem( 'unexistant' ) ).to.be( null ) ;
 	} ) ;
 	
-	it( "'setItem' and 'getItem' on the same key should retrieve the value" , function() {
+	it( ".setItem() and .getItem() on the same key should retrieve the value" , function() {
 		localStorage.setItem( 'key' , 'value' ) ;
 		expect( localStorage.getItem( 'key' ) ).to.be( 'value' ) ;
 		expect( localStorage.length ).to.be( 1 ) ;
 	} ) ;
 	
-	it( "'setItem' and 'getItem' on the same key with bad value type" , function() {
+	it( ".setItem() and .getItem() on the same key with bad value type should coerce" , function() {
 		localStorage.setItem( 'key1' , [ 'bob' ] ) ;
 		expect( localStorage.getItem( 'key1' ) ).to.be( 'bob' ) ;
 		
@@ -103,11 +103,11 @@ describe( "Basic localStorage/localStorageEmu features" , function() {
 		expect( localStorage.length ).to.be( 6 ) ;
 	} ) ;
 	
-	it( "'removeItem' on an unexisting key" , function() {
+	it( ".removeItem() on an unexisting key should be ok" , function() {
 		localStorage.removeItem( 'unexistant' ) ;
 	} ) ;
 	
-	it( "'removeItem' on an existing key should delete the key" , function() {
+	it( ".removeItem() on an existing key should delete the key" , function() {
 		localStorage.setItem( 'key' , 'value' ) ;
 		expect( localStorage.getItem( 'key' ) ).to.be( 'value' ) ;
 		expect( localStorage.length ).to.be( 1 ) ;
@@ -117,7 +117,7 @@ describe( "Basic localStorage/localStorageEmu features" , function() {
 		expect( localStorage.length ).to.be( 0 ) ;
 	} ) ;
 	
-	it( "'clear' should delete all keys" , function() {
+	it( ".clear() should delete all keys" , function() {
 		localStorage.setItem( 'key' , 'value' ) ;
 		localStorage.setItem( 'key2' , 'value2' ) ;
 		expect( localStorage.getItem( 'key' ) ).to.be( 'value' ) ;
@@ -130,7 +130,7 @@ describe( "Basic localStorage/localStorageEmu features" , function() {
 		expect( localStorage.length ).to.be( 0 ) ;
 	} ) ;
 	
-	it( "'key' should return the Nth key" , function() {
+	it( ".key() should return the Nth key" , function() {
 		localStorage.setItem( 'some' , 'key' ) ;
 		localStorage.setItem( 'someOther' , 'key' ) ;
 		localStorage.setItem( 'a' , 'key' ) ;
@@ -147,7 +147,7 @@ describe( "Basic StorageDb features" , function() {
 	
 	beforeEach( clearStorage ) ;
 	
-	it( "Create a new database, a collection, and use it" , function() {
+	it( "should create a new database, a collection, and use it" , function() {
 		var db , pref ;
 		
 		db = StorageDb.create( localStorage , 'my-app' ) ;
@@ -166,7 +166,7 @@ describe( "Basic StorageDb features" , function() {
 		expect( pref.get( 'bindings' ) ).to.eql( undefined ) ;
 	} ) ;
 	
-	it( "Should be able to retrieve from another session" , function() {
+	it( "should be able to retrieve from another session" , function() {
 		var db ;
 		
 		db = StorageDb.create( localStorage , 'my-app' ) ;
@@ -195,6 +195,73 @@ describe( "Basic StorageDb features" , function() {
 		expect( db.collections.pref.get( 'bindings' ) ).to.eql( { delete: 'CTRL-D' , new: 'CTRL-N' } ) ;
 		expect( db.cacheHit ).to.be( 1 ) ;
 		expect( db.cacheMiss ).to.be( 3 ) ;
+	} ) ;
+	
+	it( "should be able to retrieve from another session and use autoCaching" , function( done ) {
+		var db ;
+		
+		db = StorageDb.create( localStorage , 'my-app' ) ;
+		db.createCollection( 'pref' ) ;
+		db.createCollection( 'login' ) ;
+		db.collections.pref.set( 'theme' , { header: 'red' , background: 'cyan' } ) ;
+		db.collections.pref.set( 'bindings' , { delete: 'CTRL-D' , new: 'CTRL-N' } ) ;
+		db.collections.login.set( 'bob' , { login: 'bob' , password: 'god' } ) ;
+		
+		// Restart a new session...
+		
+		setTimeout( function() {
+			db = StorageDb.create( localStorage , 'my-app' , true ) ;
+			
+			// Should retrieve existing collections
+			expect( db.collections ).to.only.have.keys( 'pref' , 'login' ) ;
+			
+			expect( db.collections.pref.get( 'unexistant' ) ).to.eql( undefined ) ;
+			expect( db.collections.pref.get( 'theme' ) ).to.eql( { header: 'red' , background: 'cyan' } ) ;
+			expect( db.collections.pref.get( 'bindings' ) ).to.eql( { delete: 'CTRL-D' , new: 'CTRL-N' } ) ;
+			expect( db.collections.login.get( 'bob' ) ).to.eql( { login: 'bob' , password: 'god' } ) ;
+			
+			expect( db.cacheHit ).to.be( 3 ) ;
+			expect( db.cacheMiss ).to.be( 0 ) ;
+			
+			done() ;
+		} , 10 ) ;
+	} ) ;
+	
+	it( "stress test" , function( done ) {
+		this.timeout( 10000 ) ;
+		
+		var db , i , iMax = 5000 ;
+		
+		// Because tesling's version of mocha does not support setting the timeout value
+		if ( StorageDb.isBrowser ) { iMax = 100 ; }
+		
+		db = StorageDb.create( localStorage , 'my-app' ) ;
+		db.createCollection( 'random' ) ;
+		
+		for ( i = 0 ; i < iMax ; i ++ )
+		{
+			db.collections.random.set( '' + i , { val: i } ) ;
+		}
+		
+		// Restart a new session...
+		
+		db = StorageDb.create( localStorage , 'my-app' , true ) ;
+		
+		// Should retrieve existing collections
+		expect( db.collections ).to.only.have.keys( 'random' ) ;
+		
+		setTimeout( function() {
+			for ( i = 0 ; i < iMax ; i ++ )
+			{
+				expect( db.collections.random.get( '' + i ) ).to.eql( { val: i } ) ;
+			}
+			
+			//console.log( 'Cache hit/miss: ' + db.cacheHit + '/' + db.cacheMiss ) ;
+			expect( db.cacheHit ).to.be( iMax ) ;
+			expect( db.cacheMiss ).to.be( 0 ) ;
+			
+			done() ;
+		} , 100 + iMax / 4 ) ;
 	} ) ;
 } ) ;
 

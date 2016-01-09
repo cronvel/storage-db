@@ -69,7 +69,7 @@ log/mocha.log: log/npm-dev-install.log lib/*.js test/*.js
 
 # Testling: Browser-side Mocha
 #log/testling.log: log/npm-dev-install.log log/browser.log browser/*.js test/*.js
-log/testling.log: lib/*.js test/*.js
+log/testling.log: browser/StorageDb.js lib/*.js test/*.js
 	@echo -ne "\x1b[33mReminder: On linux, Xvfb should be installed!\x1b[0m\n"
 	killall Xvfb ; sleep 1
 	${TESTLING} | tee log/testling.log ; exit $${PIPESTATUS[0]}

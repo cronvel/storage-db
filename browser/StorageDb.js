@@ -44,7 +44,8 @@ Collection.create = function create( storageDb , collectionName )
 		storage: { value: storageDb.storage , enumerable: true } ,
 		name: { value: collectionName , enumerable: true } ,
 		prefix: { value: storageDb.prefix + StorageDb.keyDelimiter + collectionName , enumerable: true } ,
-		documents: { value: {} , enumerable: true }
+		documents: { value: {} , enumerable: true } ,
+		cacheLoaded: { value: false , writable: true , enumerable: true }
 	} ) ;
 	
 	if ( ! collection.loadMeta() )
@@ -78,6 +79,11 @@ Collection.prototype.loadMeta = function loadMeta()
 		this.documents[ collection.documentKeys[ i ] ] = undefined ;
 	}
 	
+	if ( this.storageDb.autoCacheCount )
+	{
+		this.asyncCacheLoad( collection.documentKeys ) ;
+	}
+	
 	return true ;
 } ;
 
@@ -99,27 +105,27 @@ Collection.prototype.get = function get( id )
 	// The document DO NOT EXIST
 	if ( ! ( id in this.documents ) )
 	{
-		console.log( 'Get: unexistant document' ) ;
+		//console.log( 'Get: unexistant document' ) ;
 		return undefined ;
 	}
 	
 	// The document exist and is loaded/cached
 	if ( this.documents[ id ] !== undefined )
 	{
-		console.log( 'Get: document cached' ) ;
+		//console.log( 'Get: document cached' ) ;
 		this.storageDb.cacheHit ++ ;
 		return this.documents[ id ] ;
 	}
 	
 	// The document exist but is not loaded/cached
-	console.log( 'Get: document not cached' ) ;
+	//console.log( 'Get: document not cached' ) ;
 	this.storageDb.cacheMiss ++ ;
 	
 	realKey = this.prefix + StorageDb.keyDelimiter + id ;
 	
 	doc = this.storage.getItem( realKey ) ;
 	
-	if ( ! doc ) { return undefined ; }
+	if ( doc === null ) { return undefined ; }
 	
 	try {
 		doc = JSON.parse( doc ) ;
@@ -163,7 +169,7 @@ Collection.prototype.delete = function delete_( id , dontSaveMeta )
 	// The document DO NOT EXIST: nothing to do
 	if ( ! ( id in this.documents ) )
 	{
-		console.log( 'Delete: unexistant document' ) ;
+		//console.log( 'Delete: unexistant document' ) ;
 		return ;
 	}
 	
@@ -197,6 +203,53 @@ Collection.prototype.drop = function drop( dontSaveMeta )
 	if ( ! dontSaveMeta ) { this.storageDb.saveMeta() ; }
 } ;
 
+
+
+Collection.prototype.asyncCacheLoad = function asyncCacheLoad( documentKeys )
+{
+	var i , iMax , id , realKey , doc , count , maxCount = this.storageDb.autoCacheCount ;
+	
+	//console.log( '>>> asyncCacheLoad' ) ;
+	
+	
+	// Cache at most autoCacheCount doc
+	for ( i = 0 , count = 0 , iMax = documentKeys.length ; i < iMax && count < maxCount ; i ++ )
+	{
+		id = documentKeys[ i ] ;
+		if ( this.documents[ id ] !== undefined ) { continue ; }
+		
+		realKey = this.prefix + StorageDb.keyDelimiter + id ;
+		
+		doc = this.storage.getItem( realKey ) ;
+		
+		if ( doc !== null )
+		{
+			try {
+				doc = JSON.parse( doc ) ;
+				// Cache it now!
+				this.documents[ id ] = doc ;
+			}
+			catch ( error ) {
+				// Bad format, drop it
+				this.storage.removeItem( realKey ) ;
+			}
+		}
+		
+		count ++ ;
+	}
+	
+	
+	documentKeys = documentKeys.slice( i , documentKeys.length ) ;
+	
+	if ( ! documentKeys.length )
+	{
+		this.cacheLoaded = true ;
+		return ;
+	}
+	
+	// Let breath the event loop
+	setTimeout( this.asyncCacheLoad.bind( this , documentKeys ) , 0 ) ;
+} ;
 
 
 
@@ -240,15 +293,18 @@ StorageDb.keyDelimiter = ';' ;	// candidate: :,;/|\^#
 
 
 
-StorageDb.create = function create( storage , dbName )
+StorageDb.create = function create( storage , dbName , autoCacheCount )
 {
 	if ( ! StorageDb.checkKey( dbName ) ) { throw new Error( 'Invalid DB name: ' + dbName ) ; }
+	
+	if ( autoCacheCount === true ) { autoCacheCount = 10 ; }
 	
 	var storageDb = Object.create( StorageDb.prototype , {
 		storage: { value: storage , enumerable: true } ,
 		name: { value: dbName , enumerable: true } ,
 		prefix: { value: StorageDb.keyDelimiter + dbName , enumerable: true } ,
 		collections: { value: {} , enumerable: true } ,
+		autoCacheCount: { value: autoCacheCount , writable: true , enumerable: true } ,
 		cacheHit: { value: 0 , writable: true , enumerable: true } ,
 		cacheMiss: { value: 0 , writable: true , enumerable: true }
 	} ) ;
@@ -300,7 +356,7 @@ StorageDb.prototype.loadMeta = function loadMeta()
 		return false ;
 	}
 	
-	console.log( 'db:' , db ) ;
+	//console.log( 'db:' , db ) ;
 	
 	for ( i = 0 , iMax = db.collections.length ; i < iMax ; i ++ )
 	{
@@ -339,7 +395,7 @@ StorageDb.prototype.createCollection = function createCollection( collectionName
 // Drop a collection
 StorageDb.prototype.drop = function drop()
 {
-	var realKey , keys , i , iMax ;
+	var keys , i , iMax ;
 	
 	keys = Object.keys( this.collections ) ;
 	
