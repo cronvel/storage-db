@@ -35,6 +35,7 @@ if ( process.argv.length )
 {
 	// We are running in Node.js
 	StorageDb = require( '../lib/StorageDb.js' ) ;
+	var localStorage = StorageDb.LocalStorageEmu.create( __dirname + '/localStorage' ) ;
 }
 else
 {
@@ -51,7 +52,22 @@ var expect = require( 'expect.js' ) ;
 
 describe( "..." , function() {
 	
-	it( "..." ) ;
+	
+	it( "..." , function() {
+		var db , pref ;
+		
+		return ;
+		db = StorageDb.create( localStorage , 'zenparc' ) ;
+		
+		/*
+		pref = db.createCollection( 'pref' ) ;
+		pref.set( 'theme' , { header: 'red' , background: 'cyan' } ) ;
+		//*/
+		
+		pref = db.collections.pref ;
+		console.log( 'pref:' , pref.get( 'theme' ) ) ;
+		
+	} ) ;
 } ) ;
 
 
