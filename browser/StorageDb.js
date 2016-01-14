@@ -283,9 +283,18 @@ Collection.prototype.asyncCacheLoad = function asyncCacheLoad( documentKeys )
 function StorageDb() { throw new Error( 'Use StorageDb.create() instead.' ) ; }
 module.exports = StorageDb ;
 
-if ( ! StorageDb.isBrowser ) { StorageDb.LocalStorageEmu = require( './LocalStorageEmu.js' ) ; }
 var Collection = require( './Collection.js' ) ;
 StorageDb.Collection = Collection ;
+
+// StorageDb.isBrowser cannot be set at that time, so we use a getter to delay the check
+Object.defineProperty( StorageDb , 'LocalStorageEmu' , {
+	configurable: true ,
+	get: function() {
+		if ( StorageDb.isBrowser ) { return null ; }
+		Object.defineProperty( StorageDb , 'LocalStorageEmu' , { value: require( './LocalStorageEmu.js' ) } ) ;
+		return StorageDb.LocalStorageEmu ;
+	}
+} ) ;
 
 
 
