@@ -23,6 +23,8 @@
 	SOFTWARE.
 */
 
+"use strict" ;
+
 
 
 // Load modules
@@ -278,6 +280,8 @@ Collection.prototype.asyncCacheLoad = function asyncCacheLoad( documentKeys )
 	SOFTWARE.
 */
 
+"use strict" ;
+
 
 
 function StorageDb() { throw new Error( 'Use StorageDb.create() instead.' ) ; }
@@ -444,6 +448,8 @@ StorageDb.prototype.drop = function drop()
 	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 	SOFTWARE.
 */
+
+"use strict" ;
 
 
 
